@@ -58,7 +58,7 @@ jobs:
         run: |
           cd dist
           BASE="coding-plan-usage-${GOOS}-${GOARCH}"
-          PKG_DIR="${BASE}"
+          PKG_DIR="${BASE}-bundle"
           mkdir -p "${PKG_DIR}"
           if [ "$GOOS" = "windows" ]; then
             cp "${BASE}.exe" "${PKG_DIR}/coding-plan-usage.exe"
