@@ -1,0 +1,127 @@
+name: build-multi-platform
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+          - goos: windows
+            goarch: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build binary
+        env:
+          CGO_ENABLED: 0
+          GOOS: ${{ matrix.target.goos }}
+          GOARCH: ${{ matrix.target.goarch }}
+        run: |
+          mkdir -p dist
+          BIN_NAME="coding-plan-usage-${GOOS}-${GOARCH}"
+          if [ "$GOOS" = "windows" ]; then
+            BIN_NAME="${BIN_NAME}.exe"
+          fi
+          go build -trimpath -ldflags "-s -w" -o "dist/${BIN_NAME}" .
+
+      - name: Package artifact
+        env:
+          GOOS: ${{ matrix.target.goos }}
+          GOARCH: ${{ matrix.target.goarch }}
+        run: |
+          cd dist
+          BASE="coding-plan-usage-${GOOS}-${GOARCH}"
+          PKG_DIR="${BASE}"
+          mkdir -p "${PKG_DIR}"
+          if [ "$GOOS" = "windows" ]; then
+            cp "${BASE}.exe" "${PKG_DIR}/coding-plan-usage.exe"
+            cp ../.env.example "${PKG_DIR}/.env.example"
+            cp ../README.binary.md "${PKG_DIR}/README.md"
+            zip -r "${BASE}.zip" "${PKG_DIR}"
+          else
+            cp "${BASE}" "${PKG_DIR}/coding-plan-usage"
+            cp ../.env.example "${PKG_DIR}/.env.example"
+            cp ../README.binary.md "${PKG_DIR}/README.md"
+            tar -czf "${BASE}.tar.gz" "${PKG_DIR}"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coding-plan-usage-${{ matrix.target.goos }}-${{ matrix.target.goarch }}
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate changelog
+        run: |
+          CURRENT_TAG="${GITHUB_REF_NAME}"
+          PREV_TAG="$(git tag --sort=-creatordate | grep -Fxv "${CURRENT_TAG}" | head -n 1 || true)"
+          {
+            echo "## Changelog"
+            echo
+            if [ -n "${PREV_TAG}" ]; then
+              git --no-pager log --pretty=format:'- %s (%h)' "${PREV_TAG}..${CURRENT_TAG}" || true
+            else
+              git --no-pager log --pretty=format:'- %s (%h)' "${CURRENT_TAG}" -n 30 || true
+            fi
+            echo
+            echo
+            echo "## Artifacts"
+            echo
+            echo "- Linux: amd64 / arm64"
+            echo "- macOS: amd64 / arm64"
+            echo "- Windows: amd64 / arm64"
+          } > RELEASE_NOTES.md
+
+      - name: Create GitHub Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: RELEASE_NOTES.md
+          files: release-assets/*
