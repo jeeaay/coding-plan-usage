@@ -6,6 +6,10 @@
 
 ## 快速使用
 
+### 0）交给AI吧
+
+本项目已经内置skills，复制`skills`下的`coding-plan-usage`到你的agent的技能目录下，然后告诉agent你需要查询 Coding Plan 余量。
+
 ### 1）直接运行
 
 ```bash
@@ -59,39 +63,16 @@ Scan completed: false
 
 ## GitHub 多平台编译
 
-项目已提供 GitHub Actions 工作流：
-- [build-multi-platform.yml](file:///Users/jeay/git/go/coding-plan-usage/.github/workflows/build-multi-platform.yml)
+GitHub Actions 工作流：
+- [build-multi-platform.yml](https://github.com/jeeaay/coding-plan-usage/blob/main/.github/workflows/build-multi-platform.yml)
 
 触发方式：
 - 手动触发：`Actions -> build-multi-platform -> Run workflow`
 - 打标签触发：推送 `v*` 标签（如 `v1.0.0`）
 
-打标签示例：
+打标签：
 
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
-
-Release 行为：
-- 手动触发：只构建并上传 Actions Artifacts
-- 标签触发：构建后自动创建/更新 GitHub Release，并上传全部平台产物
-- 标签触发：自动基于 Git 历史生成 Changelog 并写入 Release 描述
-
-权限策略：
-- 工作流默认仅 `contents: read`
-- 仅 Release Job 升级为 `contents: write`（最小权限）
-
-产物平台：
-- Linux: amd64 / arm64
-- macOS: amd64 / arm64
-- Windows: amd64 / arm64
-
-产物命名：
-- `coding-plan-usage-<goos>-<goarch>.tar.gz`
-- `coding-plan-usage-windows-<goarch>.zip`
-
-每个平台压缩包内包含：
-- 可执行文件（`coding-plan-usage` 或 `coding-plan-usage.exe`）
-- `.env.example`
-- `README.md`（二进制使用说明）
