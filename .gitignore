@@ -6,3 +6,5 @@ main
 /coding_plan_usage.*
 /coding-plan-usage
 /coding-plan-usage.*
+coding-plan-usage-darwin-arm64*
+.DS_Store
