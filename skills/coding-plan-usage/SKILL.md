@@ -7,80 +7,51 @@ description: "Queries the remaining hours of Alibaba Cloud Coding Plan using a c
 
 用于查询阿里云 Coding Plan 余量的命令行工具。
 
-## 依赖项目
-
-基于agent-browser，如果还没有安装，请先安装它。
-
-- [agent-browser](https://github.com/vercel-labs/agent-browser)
-
 ## 何时使用
 
 在以下场景主动调用：
 - 用户希望“查询阿里云 Coding Plan余量”
 
-## Release 地址
+## 执行流程
 
-- https://github.com/jeeaay/coding-plan-usage/releases
+1. 先直接尝试运行 `coding-plan-usage`（或 `coding-plan-usage.exe`）
+2. 若命令不存在：执行技能目录下的跨平台下载脚本，自动下载并解压后运行
+3. 若运行时报 `agent-browser` 不存在：先判断是否沙盒环境；仅真实环境缺失时安装依赖，否则提示用户：沙盒中找不到依赖是正常现象
+4. 输出并解释结果
 
-## 平台与产物映射
+> 注意运行时的路径，切换到包含二进制文件的目录或使用完整路径执行。
 
-- macOS Intel: `coding-plan-usage-darwin-amd64.tar.gz`
-- macOS Apple Silicon: `coding-plan-usage-darwin-arm64.tar.gz`
-- Linux x86_64: `coding-plan-usage-linux-amd64.tar.gz`
-- Linux ARM64: `coding-plan-usage-linux-arm64.tar.gz`
-- Windows x86_64: `coding-plan-usage-windows-amd64.zip`
-- Windows ARM64: `coding-plan-usage-windows-arm64.zip`
+## 如何使用运行 `coding-plan-usage`
 
-## 标准执行流程
+先尝试以下位置找到 `coding-plan-usage` 或 `coding-plan-usage.exe` 文件：
+- 当前目录
+- 记忆中
+- 当前agent的技能目录 如~/.opencode/skills/coding-plan-usage/scripts/coding-plan-usage-darwin-**/coding-plan-usage
+- 当前agent的项目的技能目录 如./.opencode/skills/coding-plan-usage/scripts/coding-plan-usage-darwin-**/coding-plan-usage
+- 环境变量 `PATH` 中指定的目录
 
-1. 识别用户平台与架构（darwin/linux/windows + amd64/arm64）
-2. 选择对应 release 产物
-3. 下载并解压
-4. 复制 `.env.example` 为 `.env`（如需）
-5. 运行二进制并解释输出
+如果找到了，用完整路径替换下面的`path/to/`
 
-## macOS / Linux 示例
+macOS / Linux:
 
 ```bash
-# 1) 下载（示例：macOS arm64）
-curl -fL -o coding-plan-usage-darwin-arm64.tar.gz \
-  https://github.com/jeeaay/coding-plan-usage/releases/latest/download/coding-plan-usage-darwin-arm64.tar.gz
-
-# 2) 解压
-tar -xzf coding-plan-usage-darwin-arm64.tar.gz
-cd coding-plan-usage-darwin-arm64-bundle
-
-# 3) 初始化配置（可选）
-cp .env.example .env
-
-# 4) 运行
-chmod +x coding-plan-usage
-./coding-plan-usage
+path/to/coding-plan-usage
 ```
 
-## Windows 示例（PowerShell）
+Windows（PowerShell）:
 
 ```powershell
-# 1) 下载（示例：Windows amd64）
-Invoke-WebRequest `
-  -Uri "https://github.com/jeeaay/coding-plan-usage/releases/latest/download/coding-plan-usage-windows-amd64.zip" `
-  -OutFile "coding-plan-usage-windows-amd64.zip"
-
-# 2) 解压
-Expand-Archive .\coding-plan-usage-windows-amd64.zip -DestinationPath .
-Set-Location .\coding-plan-usage-windows-amd64-bundle
-
-# 3) 初始化配置（可选）
-Copy-Item .env.example .env
-
-# 4) 运行
-.\coding-plan-usage.exe
+path\to\coding-plan-usage.exe
 ```
+
+如果命令存在，直接进入“输出解释规则”。
+如果提示 `command not found` / `不是内部或外部命令`，再执行“下载流程”。
 
 ## 输出解释规则
 
+- **未登录**：会自动打开阿里云首页并进入登录页，保存截图到当前目录`aliyu-login.png`，终端提示你扫码；扫码后再次运行即可。如果频道允许发送图片 你可以直接发给用户，否则可以帮用户打开图片。
 
-- **未登录**：会自动打开阿里云首页并进入登录页，保存截图到当前目录 `aliyu-login.png`，终端提示你扫码；扫码后再次运行即可。如果频道允许发送图片 你可以直接发给用户，否则可以帮用户打开图片。
+截图完成后脚本会停止运行，当用户回复已经完成扫码登陆后，再次运行即可。
 
 示例输出：
 
@@ -90,7 +61,6 @@ Entered login page: true
 请使用阿里云 App 扫码完成登录后，再次执行此程序以查询用量。
 Login screenshot: /opt/coding-plan-usage/aliyu-login.png
 Scan completed: false
-Command finished successfully
 ```
 
 - **已登录**：会自动进入 Coding Plan 页面并输出余量 JSON。
@@ -115,3 +85,43 @@ Command finished successfully
 ```
 
 成功读取到用量后，程序会自动关闭浏览器会话。
+
+## 下载流程
+
+优先使用技能目录下脚本完成下载与安装：
+
+- macOS / Linux 脚本：`skills/coding-plan-usage/scripts/install.sh`
+- Windows 脚本：`skills/coding-plan-usage/scripts/install.ps1`
+
+默认不传参数时，会下载到脚本同级目录（`skills/coding-plan-usage/scripts/`）。
+
+macOS / Linux：
+
+```bash
+chmod +x skills/coding-plan-usage/scripts/install.sh
+skills/coding-plan-usage/scripts/install.sh
+```
+
+指定下载目录（可选）：
+
+```bash
+skills/coding-plan-usage/scripts/install.sh /opt/coding-plan-usage
+```
+
+Windows（PowerShell）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\skills\coding-plan-usage\scripts\install.ps1
+```
+
+指定下载目录（可选）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\skills\coding-plan-usage\scripts\install.ps1 -TargetDir "C:\coding-plan-usage"
+```
+
+脚本会输出：
+- `installed_bundle=...`
+- `binary=...`
+
+拿到 `binary` 路径后，保存到记忆中，后续直接用完整路径运行。
