@@ -28,7 +28,6 @@ Entered login page: true
 请使用阿里云 App 扫码完成登录后，再次执行此程序以查询用量。
 Login screenshot: /opt/coding-plan-usage/aliyu-login.png
 Scan completed: false
-Command finished successfully
 ```
 
 - 已登录：程序会输出用量 JSON（近5小时、近一周、近一月）并自动关闭浏览器。
