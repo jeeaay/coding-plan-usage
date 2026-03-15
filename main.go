@@ -18,6 +18,11 @@ type usageResponse struct {
 	Month  usageDetail `json:"month"`
 }
 
+func shouldPrintAgentBrowserOutput(client *AliyunCodingLoginClient) bool {
+	_ = client
+	return false
+}
+
 func main() {
 	client, output, err := NewAliyunCodingLoginClient()
 	if err != nil {
@@ -27,12 +32,12 @@ func main() {
 		fmt.Printf("Error executing command: %v\n", err)
 		os.Exit(1)
 	}
-	if strings.TrimSpace(output) != "" {
+	if shouldPrintAgentBrowserOutput(client) && strings.TrimSpace(output) != "" {
 		fmt.Print(output)
 	}
 
 	result, runOutput, err := client.Run()
-	if strings.TrimSpace(runOutput) != "" {
+	if shouldPrintAgentBrowserOutput(client) && strings.TrimSpace(runOutput) != "" {
 		fmt.Print(runOutput)
 	}
 	if err != nil {
@@ -55,7 +60,7 @@ func main() {
 		fmt.Println(string(payload))
 
 		closeOutput, closeErr := client.Close()
-		if strings.TrimSpace(closeOutput) != "" {
+		if shouldPrintAgentBrowserOutput(client) && strings.TrimSpace(closeOutput) != "" {
 			fmt.Print(closeOutput)
 		}
 		if closeErr != nil {
@@ -71,5 +76,4 @@ func main() {
 		}
 		fmt.Printf("Scan completed: %t\n", result.ScanCompleted)
 	}
-	fmt.Println("Command finished successfully")
 }

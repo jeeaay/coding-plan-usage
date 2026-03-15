@@ -24,7 +24,6 @@ Entered login page: true
 请使用阿里云 App 扫码完成登录后，再次执行此程序以查询用量。
 Login screenshot: /opt/coding-plan-usage/aliyu-login.png
 Scan completed: false
-Command finished successfully
 ```
 
 - **已登录**：会自动进入 Coding Plan 页面并输出余量 JSON。

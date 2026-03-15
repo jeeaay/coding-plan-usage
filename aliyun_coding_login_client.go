@@ -63,7 +63,7 @@ func (c *AliyunCodingLoginClient) Run() (*AliyunCodingLoginResult, string, error
 	}
 
 	snapshotOutput, err := c.SnapshotInteractive()
-	if strings.TrimSpace(snapshotOutput) != "" {
+	if c.shouldPrintSnapshotOutput() && strings.TrimSpace(snapshotOutput) != "" {
 		logs = append(logs, snapshotOutput)
 	}
 	if err != nil {
@@ -80,7 +80,7 @@ func (c *AliyunCodingLoginClient) Run() (*AliyunCodingLoginResult, string, error
 			return nil, strings.Join(logs, "\n"), openErr
 		}
 		detailSnapshot, detailErr := c.SnapshotAll()
-		if strings.TrimSpace(detailSnapshot) != "" {
+		if c.shouldPrintSnapshotOutput() && strings.TrimSpace(detailSnapshot) != "" {
 			logs = append(logs, detailSnapshot)
 		}
 		if detailErr != nil {
@@ -89,7 +89,7 @@ func (c *AliyunCodingLoginClient) Run() (*AliyunCodingLoginResult, string, error
 		c.FillUsageFromSnapshot(result, detailSnapshot)
 		if result.Hours5Usage == "" && result.WeekUsage == "" && result.MonthUsage == "" {
 			fallbackSnapshot, fallbackErr := c.SnapshotInteractive()
-			if strings.TrimSpace(fallbackSnapshot) != "" {
+			if c.shouldPrintSnapshotOutput() && strings.TrimSpace(fallbackSnapshot) != "" {
 				logs = append(logs, fallbackSnapshot)
 			}
 			if fallbackErr == nil {
@@ -141,6 +141,13 @@ func (c *AliyunCodingLoginClient) SnapshotInteractive() (string, error) {
 		return output, fmt.Errorf("failed to snapshot aliyun home page: %w", err)
 	}
 	return output, nil
+}
+
+func (c *AliyunCodingLoginClient) shouldPrintSnapshotOutput() bool {
+	if c.session == nil {
+		return false
+	}
+	return c.session.config.DevMode
 }
 
 func (c *AliyunCodingLoginClient) SnapshotAll() (string, error) {
