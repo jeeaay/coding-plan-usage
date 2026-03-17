@@ -184,6 +184,20 @@ func (c *AliyunCodingLoginClient) FillUsageFromSnapshot(result *AliyunCodingLogi
 	if result.MonthUsage == "" {
 		result.MonthResetTime, result.MonthUsage = extractUsageByMarker(snapshotOutput, "套餐专属API")
 	}
+	if result.Hours5Usage == "" || result.WeekUsage == "" || result.MonthUsage == "" {
+		sequence := extractUsageBySequence(snapshotOutput)
+		if len(sequence) >= 3 {
+			if result.Hours5Usage == "" {
+				result.Hours5ResetTime, result.Hours5Usage = sequence[0][0], sequence[0][1]
+			}
+			if result.WeekUsage == "" {
+				result.WeekResetTime, result.WeekUsage = sequence[1][0], sequence[1][1]
+			}
+			if result.MonthUsage == "" {
+				result.MonthResetTime, result.MonthUsage = sequence[2][0], sequence[2][1]
+			}
+		}
+	}
 }
 
 func (c *AliyunCodingLoginClient) IsLoggedInFromSnapshot(snapshotOutput string) bool {
@@ -396,7 +410,7 @@ func (c *AliyunCodingLoginClient) runSessionCommand(args ...string) (string, err
 }
 
 func extractUsageByMarker(snapshotOutput string, marker string) (string, string) {
-	linePattern := regexp.MustCompile(`(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})重置\s*([0-9]+%)`)
+	linePattern := regexp.MustCompile(`(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})\s*重置\s*([0-9]+%)`)
 	lines := strings.Split(snapshotOutput, "\n")
 	for _, line := range lines {
 		if !strings.Contains(line, marker) {
@@ -408,4 +422,20 @@ func extractUsageByMarker(snapshotOutput string, marker string) (string, string)
 		}
 	}
 	return "", ""
+}
+
+func extractUsageBySequence(snapshotOutput string) [][2]string {
+	pattern := regexp.MustCompile(`(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})\s*重置\s*([0-9]+%)`)
+	matches := pattern.FindAllStringSubmatch(snapshotOutput, -1)
+	result := make([][2]string, 0, 3)
+	for _, match := range matches {
+		if len(match) < 3 {
+			continue
+		}
+		result = append(result, [2]string{match[1], match[2]})
+		if len(result) == 3 {
+			break
+		}
+	}
+	return result
 }
