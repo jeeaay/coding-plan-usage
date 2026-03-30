@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	aliyunHomeURL       = "https://www.aliyun.com/"
-	codingPlanDetailURL = "https://bailian.console.aliyun.com/cn-beijing/?tab=coding-plan#/efm/detail"
+	aliyunHomeURL        = "https://www.aliyun.com/"
+	aliyunDirectLoginURL = "https://account.aliyun.com/login/login.htm"
+	codingPlanDetailURL  = "https://bailian.console.aliyun.com/cn-beijing/?tab=coding-plan#/efm/detail"
 )
 
 var loginRefRegex = regexp.MustCompile(`\[ref=(e\d+)\]`)
@@ -102,7 +103,24 @@ func (c *AliyunCodingLoginClient) Run() (*AliyunCodingLoginResult, string, error
 
 	loginRef, err := c.FindLoginRef(snapshotOutput)
 	if err != nil {
-		return nil, strings.Join(logs, "\n"), err
+		directLoginOutput, directLoginErr := c.OpenDirectLoginPage()
+		if strings.TrimSpace(directLoginOutput) != "" {
+			logs = append(logs, directLoginOutput)
+		}
+		if directLoginErr != nil {
+			return nil, strings.Join(logs, "\n"), fmt.Errorf("%v; direct login fallback failed: %w", err, directLoginErr)
+		}
+		screenshotPath, screenshotOutput, screenshotErr := c.CaptureScreenshotInCwd()
+		if strings.TrimSpace(screenshotOutput) != "" {
+			logs = append(logs, screenshotOutput)
+		}
+		if screenshotErr != nil {
+			return nil, strings.Join(logs, "\n"), screenshotErr
+		}
+		result.EnteredLogin = true
+		result.ScreenshotPath = screenshotPath
+		result.ScanCompleted = false
+		return result, strings.Join(logs, "\n"), nil
 	}
 
 	clickOutput, err := c.ClickLoginByRef(loginRef)
@@ -166,6 +184,25 @@ func (c *AliyunCodingLoginClient) OpenCodingPlanDetail() (string, error) {
 	}
 	if err != nil {
 		return strings.Join(logs, "\n"), fmt.Errorf("failed to open coding plan detail page: %w", err)
+	}
+	waitOutput, waitErr := c.WaitWindowReady()
+	if strings.TrimSpace(waitOutput) != "" {
+		logs = append(logs, waitOutput)
+	}
+	if waitErr != nil {
+		return strings.Join(logs, "\n"), waitErr
+	}
+	return strings.Join(logs, "\n"), nil
+}
+
+func (c *AliyunCodingLoginClient) OpenDirectLoginPage() (string, error) {
+	logs := make([]string, 0, 2)
+	output, err := c.runSessionCommand("open", aliyunDirectLoginURL)
+	if strings.TrimSpace(output) != "" {
+		logs = append(logs, output)
+	}
+	if err != nil {
+		return strings.Join(logs, "\n"), fmt.Errorf("failed to open direct login page: %w", err)
 	}
 	waitOutput, waitErr := c.WaitWindowReady()
 	if strings.TrimSpace(waitOutput) != "" {
