@@ -247,7 +247,7 @@ class AliyunCodingLoginClient:
             if screenshot_err:
                 return result, "\n".join(logs), screenshot_err
             result["EnteredLogin"] = True
-            result["ScreenshotPath"] = screenshot_path
+            result["ScreenshotPath"] = to_script_based_abs_path(screenshot_path)
             result["ScanCompleted"] = False
             return result, "\n".join(logs), None
 
@@ -269,7 +269,7 @@ class AliyunCodingLoginClient:
             logs.append(screenshot_output)
         if err:
             return result, "\n".join(logs), err
-        result["ScreenshotPath"] = screenshot_path
+        result["ScreenshotPath"] = to_script_based_abs_path(screenshot_path)
         result["ScanCompleted"] = False
 
         return result, "\n".join(logs), None
@@ -400,12 +400,10 @@ class AliyunCodingLoginClient:
 
     def capture_screenshot_in_cwd(self) -> Tuple[str, str, Optional[Exception]]:
         try:
-            working_dir = os.getcwd()
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            file_path = os.path.abspath(os.path.join(script_dir, "aliyu-login.png"))
         except Exception as e:
-            return "", "", Exception(f"failed to get working directory: {e}")
-
-        file_name = "aliyu-login.png"
-        file_path = os.path.join(working_dir, file_name)
+            return "", "", Exception(f"failed to build screenshot path: {e}")
 
         output, err = self.run_session_command(["screenshot", file_path])
         if err:
@@ -473,6 +471,15 @@ class AliyunCodingLoginClient:
 def should_print_agent_browser_output(client: AliyunCodingLoginClient) -> bool:
     return False
 
+def to_script_based_abs_path(path: str) -> str:
+    normalized = path.strip()
+    if not normalized:
+        return ""
+    if os.path.isabs(normalized):
+        return os.path.abspath(normalized)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.abspath(os.path.join(script_dir, normalized))
+
 def main():
     try:
         session = AgentBrowserSession(AliyunCodingLoginClient.ALIYUN_HOME_URL)
@@ -521,9 +528,10 @@ def main():
         else:
             print(f"Already logged in: {result.get('AlreadyLoggedIn', False)}")
             print(f"Entered login page: {result.get('EnteredLogin', False)}")
-            if result.get("ScreenshotPath", "").strip():
+            screenshot_path = to_script_based_abs_path(result.get("ScreenshotPath", ""))
+            if screenshot_path:
                 print("请使用阿里云 App 扫码完成登录后，再次执行此程序以查询用量。")
-                print(f"Login screenshot: {result.get('ScreenshotPath', '')}")
+                print(f"Login screenshot: {screenshot_path}")
             print(f"Scan completed: {result.get('ScanCompleted', False)}")
     except Exception as e:
         print(f"Error: {e}")
